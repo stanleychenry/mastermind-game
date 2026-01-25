@@ -245,11 +245,35 @@ const Mastermind = () => {
       setGameOver(true);
       setMessage('Code cracked!');
       saveProgress({ completed: true, won: true, time: timeString, guessCount: newGuesses.length, guesses: newGuesses });
+      
+      // Send result to parent window (Webflow)
+      window.parent.postMessage({
+        type: 'GAME_COMPLETE',
+        game: 'mastermind',
+        data: {
+          completed: true,
+          time_seconds: seconds,
+          guesses_used: newGuesses.length,
+          difficulty: 'Standard'
+        }
+      }, '*');
     } else if (newGuesses.length >= MAX_GUESSES) {
       setDisplayTime(timeString);
       setGameOver(true);
       setMessage('Out of guesses!');
       saveProgress({ completed: true, won: false, time: timeString, guessCount: newGuesses.length, guesses: newGuesses });
+      
+      // Send result to parent window (Webflow)
+      window.parent.postMessage({
+        type: 'GAME_COMPLETE',
+        game: 'mastermind',
+        data: {
+          completed: false,
+          time_seconds: seconds,
+          guesses_used: newGuesses.length,
+          difficulty: 'Standard'
+        }
+      }, '*');
     }
   };
 
