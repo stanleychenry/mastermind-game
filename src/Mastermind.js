@@ -167,6 +167,7 @@ const Mastermind = () => {
   const [countdown, setCountdown] = useState('');
   const [alreadyCompleted, setAlreadyCompleted] = useState(false);
   const [storedResult, setStoredResult] = useState(null);
+  const containerRef = React.useRef(null);
 
   const dayNumber = getDayNumber();
   const formattedDate = getFormattedDate();
@@ -186,6 +187,28 @@ const Mastermind = () => {
     const interval = setInterval(() => setCountdown(getTimeUntilNextPuzzle()), 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Send height to parent for iframe resizing
+  useEffect(() => {
+    const sendHeight = () => {
+      if (containerRef.current) {
+        const height = containerRef.current.scrollHeight;
+        window.parent.postMessage({
+          type: 'RESIZE_IFRAME',
+          game: 'mastermind',
+          height: height
+        }, '*');
+      }
+    };
+    
+    sendHeight();
+    const resizeObserver = new ResizeObserver(sendHeight);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    return () => resizeObserver.disconnect();
+  }, [gameOver, won, guesses]);
 
   // Initialize game
   const initializeGame = useCallback(() => {
@@ -385,7 +408,7 @@ const Mastermind = () => {
   };
 
   return (
-    <div style={styles.container}>
+    <div ref={containerRef} style={styles.container}>
       {/* Header */}
       <div style={styles.header}>
         <h2 style={styles.title}>Mastermind</h2>
