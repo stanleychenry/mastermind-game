@@ -3,20 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 // ============================================================================
 // MASTERMIND - Daily Code-Breaking Puzzle
 // ============================================================================
-// A standalone React component for embedding on your website.
-// 
-// Usage: import Mastermind from './Mastermind';
-//        <Mastermind />
-//
-// Features:
-// - One puzzle per day, resets at midnight UTC
-// - Same puzzle for all players globally
-// - Progress saved to localStorage
-// - Shareable emoji results
-// - Accessible colour letters (R/B/G/Y/P/O)
-// ============================================================================
 
-// Seeded random number generator (Mulberry32)
 const mulberry32 = (seed) => {
   return () => {
     let t = seed += 0x6D2B79F5;
@@ -26,7 +13,6 @@ const mulberry32 = (seed) => {
   };
 };
 
-// Game configuration
 const COLORS = [
   { name: 'Red', hex: '#ef4444', letter: 'R' },
   { name: 'Blue', hex: '#3b82f6', letter: 'B' },
@@ -41,7 +27,12 @@ const MAX_GUESSES = 8;
 const LAUNCH_DATE = new Date('2025-01-27T00:00:00Z');
 const STORAGE_KEY_PREFIX = 'mastermind';
 
-// Generate a secret code using seeded random
+const FEEDBACK_COLORS = {
+  correct: '#22c55e',
+  wrongSpot: '#f59e0b',
+  noMatch: '#ef4444',
+};
+
 const generateSecretCode = (seed) => {
   const random = mulberry32(seed);
   const code = [];
@@ -51,7 +42,6 @@ const generateSecretCode = (seed) => {
   return code;
 };
 
-// Calculate feedback pegs for a guess
 const calculateFeedback = (guess, secret) => {
   const result = { black: 0, white: 0 };
   const secretCopy = [...secret];
@@ -78,7 +68,6 @@ const calculateFeedback = (guess, secret) => {
   return result;
 };
 
-// Date utilities
 const getDayNumber = () => {
   const now = new Date();
   const utcNow = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
@@ -101,7 +90,6 @@ const getTimeUntilNextPuzzle = () => {
   return `${hours}h ${minutes}m ${seconds}s`;
 };
 
-// Storage utilities
 const getTodayKey = () => {
   const now = new Date();
   return `${STORAGE_KEY_PREFIX}-${now.getUTCFullYear()}-${now.getUTCMonth() + 1}-${now.getUTCDate()}`;
@@ -122,7 +110,6 @@ const getStoredProgress = () => {
   }
 };
 
-// Clipboard utility
 const copyToClipboard = async (text, onSuccess, onError) => {
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -149,10 +136,6 @@ const copyToClipboard = async (text, onSuccess, onError) => {
   }
 };
 
-// ============================================================================
-// COMPONENT
-// ============================================================================
-
 const Mastermind = () => {
   const [secretCode, setSecretCode] = useState([]);
   const [guesses, setGuesses] = useState([]);
@@ -170,7 +153,6 @@ const Mastermind = () => {
   const dayNumber = getDayNumber();
   const formattedDate = getFormattedDate();
 
-  // Timer
   useEffect(() => {
     if (gameOver || !startTime) return;
     const interval = setInterval(() => {
@@ -180,13 +162,11 @@ const Mastermind = () => {
     return () => clearInterval(interval);
   }, [startTime, gameOver]);
 
-  // Countdown
   useEffect(() => {
     const interval = setInterval(() => setCountdown(getTimeUntilNextPuzzle()), 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Send height to parent for iframe resizing
   useEffect(() => {
     const sendHeight = () => {
       if (containerRef.current) {
@@ -208,7 +188,6 @@ const Mastermind = () => {
     return () => resizeObserver.disconnect();
   }, [gameOver, won, guesses]);
 
-  // Initialize game
   const initializeGame = useCallback(() => {
     const seed = dayNumber * 1000 + 777;
     const code = generateSecretCode(seed);
@@ -296,6 +275,12 @@ const Mastermind = () => {
     }
   };
 
+  const getFeedbackPegColor = (index, feedback) => {
+    if (index < feedback.black) return FEEDBACK_COLORS.correct;
+    if (index < feedback.black + feedback.white) return FEEDBACK_COLORS.wrongSpot;
+    return FEEDBACK_COLORS.noMatch;
+  };
+
   const generateShareText = () => {
     const resultGuesses = storedResult?.guesses || guesses;
     const wasWon = storedResult?.won ?? won;
@@ -304,7 +289,7 @@ const Mastermind = () => {
     
     resultGuesses.forEach(guess => {
       const colorEmojis = guess.colors.map(c => ['🔴', '🔵', '🟢', '🟡', '🟣', '🟠'][c]).join('');
-      const pegs = '🟢'.repeat(guess.feedback.black) + '🟠'.repeat(guess.feedback.white) + '🔴'.repeat(CODE_LENGTH - guess.feedback.black - guess.feedback.white);
+      const pegs = '🟢'.repeat(guess.feedback.black) + '🟡'.repeat(guess.feedback.white) + '🔴'.repeat(CODE_LENGTH - guess.feedback.black - guess.feedback.white);
       text += `${colorEmojis} ${pegs}\n`;
     });
     
@@ -336,7 +321,6 @@ const Mastermind = () => {
     setMessage('Crack the code!');
   };
 
-  // Styles
   const styles = {
     container: {
       padding: 16,
@@ -405,21 +389,18 @@ const Mastermind = () => {
 
   return (
     <div ref={containerRef} style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
         <h2 style={styles.title}>Mastermind</h2>
         <p style={styles.subtitle}>Crack the 4-colour code</p>
         <p style={styles.message}>{message}</p>
       </div>
 
-      {/* Stats */}
       <div style={styles.statsRow}>
         <span style={styles.statBadge}>⏱️ {displayTime}</span>
         <span style={styles.statBadge}>{guesses.length}/{MAX_GUESSES}</span>
         <span style={styles.dateBadge}>{formattedDate}</span>
       </div>
 
-      {/* Previous guesses */}
       <div style={{ marginBottom: 16 }}>
         {guesses.map((guess, idx) => (
           <div key={idx} style={styles.guessRow}>
@@ -431,18 +412,14 @@ const Mastermind = () => {
               ))}
             </div>
             <div style={styles.feedbackBox}>
-              {[...Array(CODE_LENGTH)].map((_, i) => {
-                let color = '#ef4444'; // Red - no match
-                if (i < guess.feedback.black) color = '#22c55e'; // Green - correct spot
-                else if (i < guess.feedback.black + guess.feedback.white) color = '#f97316'; // Orange - wrong spot
-                return <div key={i} style={styles.feedbackPeg(color)} />;
-              })}
+              {[...Array(CODE_LENGTH)].map((_, i) => (
+                <div key={i} style={styles.feedbackPeg(getFeedbackPegColor(i, guess.feedback))} />
+              ))}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Current guess */}
       {!gameOver && (
         <div style={{ marginBottom: 16 }}>
           <div style={styles.guessRow}>
@@ -462,7 +439,6 @@ const Mastermind = () => {
         </div>
       )}
 
-      {/* Secret code reveal on loss */}
       {gameOver && !won && (
         <div style={{ marginBottom: 16, textAlign: 'center' }}>
           <p style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>The code was:</p>
@@ -476,7 +452,6 @@ const Mastermind = () => {
         </div>
       )}
 
-      {/* Colour picker */}
       {!gameOver && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 12 }}>
@@ -497,7 +472,6 @@ const Mastermind = () => {
         </div>
       )}
 
-      {/* Game controls */}
       {!gameOver ? (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <button onClick={resetPuzzle} style={styles.button(false, false)}>Reset</button>
@@ -527,20 +501,19 @@ const Mastermind = () => {
         </div>
       )}
 
-      {/* Rules */}
       <div style={styles.rules}>
         <p style={{ fontSize: 12, color: '#666', textAlign: 'center', marginBottom: 8 }}>How to play:</p>
         <div style={styles.ruleText}>
           <p>• Select 4 colours to make a guess</p>
           <p>• 🟢 Green peg = correct colour in correct position</p>
-          <p>• 🟠 Orange peg = correct colour in wrong position</p>
+          <p>• 🟡 Amber peg = correct colour in wrong position</p>
           <p>• 🔴 Red peg = colour not in code</p>
           <p>• Crack the code in {MAX_GUESSES} guesses or less!</p>
         </div>
         <div style={styles.legend}>
-          <span style={styles.legendItem}><span style={styles.legendDot('#22c55e')} /> Correct spot</span>
-          <span style={styles.legendItem}><span style={styles.legendDot('#f97316')} /> Wrong spot</span>
-          <span style={styles.legendItem}><span style={styles.legendDot('#ef4444')} /> No match</span>
+          <span style={styles.legendItem}><span style={styles.legendDot(FEEDBACK_COLORS.correct)} /> Correct spot</span>
+          <span style={styles.legendItem}><span style={styles.legendDot(FEEDBACK_COLORS.wrongSpot)} /> Wrong spot</span>
+          <span style={styles.legendItem}><span style={styles.legendDot(FEEDBACK_COLORS.noMatch)} /> No match</span>
         </div>
       </div>
     </div>
