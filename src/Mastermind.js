@@ -38,7 +38,7 @@ const COLORS = [
 
 const CODE_LENGTH = 4;
 const MAX_GUESSES = 8;
-const LAUNCH_DATE = new Date('2025-01-27T00:00:00Z'); // Set your launch date
+const LAUNCH_DATE = new Date('2025-01-27T00:00:00Z');
 const STORAGE_KEY_PREFIX = 'mastermind';
 
 // Generate a secret code using seeded random
@@ -57,7 +57,6 @@ const calculateFeedback = (guess, secret) => {
   const secretCopy = [...secret];
   const guessCopy = [...guess];
   
-  // First pass: exact matches (black pegs)
   for (let i = 0; i < CODE_LENGTH; i++) {
     if (guessCopy[i] === secretCopy[i]) {
       result.black++;
@@ -66,7 +65,6 @@ const calculateFeedback = (guess, secret) => {
     }
   }
   
-  // Second pass: colour matches in wrong position (white pegs)
   for (let i = 0; i < CODE_LENGTH; i++) {
     if (guessCopy[i] >= 0) {
       const idx = secretCopy.indexOf(guessCopy[i]);
@@ -269,7 +267,6 @@ const Mastermind = () => {
       setMessage('Code cracked!');
       saveProgress({ completed: true, won: true, time: timeString, guessCount: newGuesses.length, guesses: newGuesses });
       
-      // Send result to parent window (Webflow)
       window.parent.postMessage({
         type: 'GAME_COMPLETE',
         game: 'mastermind',
@@ -286,7 +283,6 @@ const Mastermind = () => {
       setMessage('Out of guesses!');
       saveProgress({ completed: true, won: false, time: timeString, guessCount: newGuesses.length, guesses: newGuesses });
       
-      // Send result to parent window (Webflow)
       window.parent.postMessage({
         type: 'GAME_COMPLETE',
         game: 'mastermind',
@@ -308,7 +304,7 @@ const Mastermind = () => {
     
     resultGuesses.forEach(guess => {
       const colorEmojis = guess.colors.map(c => ['🔴', '🔵', '🟢', '🟡', '🟣', '🟠'][c]).join('');
-      const pegs = '⚫'.repeat(guess.feedback.black) + '⚪'.repeat(guess.feedback.white) + '·'.repeat(CODE_LENGTH - guess.feedback.black - guess.feedback.white);
+      const pegs = '🟢'.repeat(guess.feedback.black) + '🟠'.repeat(guess.feedback.white) + '🔴'.repeat(CODE_LENGTH - guess.feedback.black - guess.feedback.white);
       text += `${colorEmojis} ${pegs}\n`;
     });
     
@@ -436,9 +432,9 @@ const Mastermind = () => {
             </div>
             <div style={styles.feedbackBox}>
               {[...Array(CODE_LENGTH)].map((_, i) => {
-                let color = '#e5e5e5';
-                if (i < guess.feedback.black) color = '#000';
-                else if (i < guess.feedback.black + guess.feedback.white) color = '#fff';
+                let color = '#ef4444'; // Red - no match
+                if (i < guess.feedback.black) color = '#22c55e'; // Green - correct spot
+                else if (i < guess.feedback.black + guess.feedback.white) color = '#f97316'; // Orange - wrong spot
                 return <div key={i} style={styles.feedbackPeg(color)} />;
               })}
             </div>
@@ -536,14 +532,15 @@ const Mastermind = () => {
         <p style={{ fontSize: 12, color: '#666', textAlign: 'center', marginBottom: 8 }}>How to play:</p>
         <div style={styles.ruleText}>
           <p>• Select 4 colours to make a guess</p>
-          <p>• ⚫ Black peg = correct colour in correct position</p>
-          <p>• ⚪ White peg = correct colour in wrong position</p>
+          <p>• 🟢 Green peg = correct colour in correct position</p>
+          <p>• 🟠 Orange peg = correct colour in wrong position</p>
+          <p>• 🔴 Red peg = colour not in code</p>
           <p>• Crack the code in {MAX_GUESSES} guesses or less!</p>
         </div>
         <div style={styles.legend}>
-          <span style={styles.legendItem}><span style={styles.legendDot('#000')} /> Exact</span>
-          <span style={styles.legendItem}><span style={styles.legendDot('#fff')} /> Wrong spot</span>
-          <span style={styles.legendItem}><span style={styles.legendDot('#e5e5e5')} /> No match</span>
+          <span style={styles.legendItem}><span style={styles.legendDot('#22c55e')} /> Correct spot</span>
+          <span style={styles.legendItem}><span style={styles.legendDot('#f97316')} /> Wrong spot</span>
+          <span style={styles.legendItem}><span style={styles.legendDot('#ef4444')} /> No match</span>
         </div>
       </div>
     </div>
